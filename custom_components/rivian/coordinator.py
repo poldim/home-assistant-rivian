@@ -125,7 +125,7 @@ class RivianDataUpdateCoordinator(DataUpdateCoordinator[T], Generic[T], ABC):
 class ChargingCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
     """Charging data update coordinator for Rivian."""
 
-    key = "getLiveSessionData"
+    key = "getLiveSessionHistory"
     _unplugged_interval = 15 * 60  # 15 minutes
     _plugged_interval = 30  # 30 seconds
     _update_interval_seconds = _unplugged_interval  # 15 minutes
