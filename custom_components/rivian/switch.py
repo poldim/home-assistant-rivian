@@ -13,9 +13,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import ATTR_COORDINATOR, ATTR_VEHICLE, DOMAIN
+from .coordinator import VehicleCoordinator
 from .data_classes import RivianSwitchEntityDescription
-from .entity import RivianVehicleControlEntity, RivianChargingScheduleEntity
-from .coordinator import VehicleCoordinator, ChargingScheduleCoordinator
+from .entity import RivianVehicleControlEntity, RivianVehicleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,13 +87,48 @@ async def async_setup_entry(
         if vehicle.get("phone_identity_id")
         for description in SWITCHES
     ]
-    
     for vehicle_id, vehicle in vehicles.items():
-        coor = coordinators[vehicle_id]
-        if hasattr(coor, "charging_schedule_coordinator"):
-            entities.append(RivianChargingScheduleEnabledSwitch(coor.charging_schedule_coordinator, vehicle))
-
+        coord = coordinators[vehicle_id]
+        await coord.get_charging_schedule_data()
+        entities.append(
+            RivianChargingScheduleEnabledEntity(coord, entry, vehicle)
+        )
     async_add_entities(entities)
+
+
+class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
+    """Charging Schedule Enabled Entity."""
+
+    def __init__(
+        self,
+        coordinator: VehicleCoordinator,
+        config_entry: ConfigEntry,
+        vehicle: dict[str, Any],
+    ) -> None:
+        """Construct the charging schedule enabled entity."""
+        desc = RivianSwitchEntityDescription(
+            key="charging_schedule_enabled",
+            name="Charging Schedule Enabled",
+            icon="mdi:calendar-clock",
+            is_on=lambda c: (c._charging_schedule or {}).get("enabled", True),
+            turn_off=lambda c: c.update_charging_schedule_data(enabled=False),
+            turn_on=lambda c: c.update_charging_schedule_data(enabled=True),
+        )
+        super().__init__(coordinator, config_entry, desc, vehicle)
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if entity is on."""
+        sched = self.coordinator._charging_schedule or {}
+        return sched.get("enabled", True)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the entity on."""
+        await self.coordinator.update_charging_schedule_data(enabled=True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the entity off."""
+        await self.coordinator.update_charging_schedule_data(enabled=False)
 
 
 class RivianSwitchEntity(RivianVehicleControlEntity, SwitchEntity):
@@ -122,30 +157,3 @@ class RivianSwitchEntity(RivianVehicleControlEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         await self.entity_description.turn_on(self.coordinator)
-
-class RivianChargingScheduleEnabledSwitch(RivianChargingScheduleEntity, SwitchEntity):
-    """Representation of a Rivian charging schedule enabled switch."""
-
-    def __init__(self, coordinator, vehicle):
-        super().__init__(coordinator, vehicle)
-        self._attr_name = "Charging Schedule Enabled"
-        self._attr_unique_id = f"{self._vin}-charging_schedule_enabled"
-        self._attr_icon = "mdi:calendar-clock"
-
-    @property
-    def is_on(self) -> bool:
-        """Return true if the switch is on."""
-        schedule = self._get_schedule()
-        return schedule.get("enabled", False)
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the switch on."""
-        schedule = self._get_schedule()
-        schedule["enabled"] = True
-        await self.coordinator.set_charging_schedule([schedule])
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the switch off."""
-        schedule = self._get_schedule()
-        schedule["enabled"] = False
-        await self.coordinator.set_charging_schedule([schedule])

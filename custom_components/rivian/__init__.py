@@ -28,7 +28,7 @@ from .const import (
     ISSUE_URL,
     VERSION,
 )
-from .coordinator import UserCoordinator, VehicleCoordinator, WallboxCoordinator, ChargingScheduleCoordinator
+from .coordinator import UserCoordinator, VehicleCoordinator, WallboxCoordinator
 from .helpers import get_rivian_api_from_entry
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,13 +105,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise ConfigEntryNotReady("Issue loading vehicle data")
         await coor.charging_coordinator.async_config_entry_first_refresh()
         await coor.drivers_coordinator.async_config_entry_first_refresh()
-        
-        # Add charging schedule coordinator
-        coor.charging_schedule_coordinator = ChargingScheduleCoordinator(
-            hass=hass, config_entry=entry, client=client, vehicle_id=vehicle_id
-        )
-        await coor.charging_schedule_coordinator.async_config_entry_first_refresh()
-        
         vehicle_coordinators[vehicle_id] = coor
 
     wallbox_coordinator = WallboxCoordinator(

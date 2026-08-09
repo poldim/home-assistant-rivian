@@ -40,7 +40,6 @@ from .entity import (
     RivianEntity,
     RivianVehicleEntity,
     RivianWallboxEntity,
-    RivianChargingScheduleEntity,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -97,14 +96,45 @@ async def async_setup_entry(
         for wallbox in wallbox_coordinator.data
         for description in WALLBOX_SENSORS
     )
-    
-    # Add charging schedule entities
+
     for vehicle_id, vehicle in vehicles.items():
-        coor = vehicle_coordinators[vehicle_id]
-        if hasattr(coor, "charging_schedule_coordinator"):
-            entities.append(RivianChargingScheduleDaysSensor(coor.charging_schedule_coordinator, vehicle))
+        coord = vehicle_coordinators[vehicle_id]
+        entities.append(RivianChargingScheduleDaysEntity(coord, entry, vehicle))
 
     async_add_entities(entities)
+
+
+class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
+    """Charging Schedule Days Entity."""
+
+    def __init__(
+        self,
+        coordinator: VehicleCoordinator,
+        config_entry: ConfigEntry,
+        vehicle: dict[str, Any],
+    ) -> None:
+        """Construct the charging schedule days entity."""
+        desc = RivianSensorEntityDescription(
+            key="charging_schedule_days",
+            name="Charging Schedule Days",
+            icon="mdi:calendar-week",
+            field="charging_schedule_days",
+        )
+        super().__init__(coordinator, config_entry, desc, vehicle)
+
+    @property
+    def available(self) -> bool:
+        """Return availability."""
+        return self._available
+
+    @property
+    def native_value(self) -> str | None:
+        """Return native value."""
+        sched = self.coordinator._charging_schedule or {}
+        days = sched.get("weekDays", [])
+        if isinstance(days, list):
+            return ", ".join(days) if days else "Everyday"
+        return str(days)
 
 
 class RivianSensorEntity(RivianVehicleEntity, SensorEntity):
@@ -398,19 +428,3 @@ class RivianDriverSensorEntity(RivianEntity[DriverKeyCoordinator], SensorEntity)
 
             return {"paired": get_count("isPaired"), "enabled": get_count("isEnabled")}
         return super().extra_state_attributes
-
-class RivianChargingScheduleDaysSensor(RivianChargingScheduleEntity, SensorEntity):
-    """Representation of a Rivian charging schedule days sensor."""
-
-    def __init__(self, coordinator, vehicle):
-        super().__init__(coordinator, vehicle)
-        self._attr_name = "Charging Schedule Days"
-        self._attr_unique_id = f"{self._vin}-charging_schedule_days"
-        self._attr_icon = "mdi:calendar-week"
-
-    @property
-    def native_value(self) -> str | None:
-        """Return the value of the entity."""
-        schedule = self._get_schedule()
-        days = schedule.get("weekDays", [])
-        return ", ".join(days)

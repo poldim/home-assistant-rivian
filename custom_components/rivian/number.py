@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import ATTR_COORDINATOR, ATTR_VEHICLE, DOMAIN
 from .coordinator import VehicleCoordinator
 from .data_classes import RivianNumberEntityDescription
-from .entity import RivianVehicleControlEntity, RivianChargingScheduleEntity
+from .entity import RivianVehicleControlEntity, RivianVehicleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,13 +51,56 @@ async def async_setup_entry(
         if vehicle.get("phone_identity_id")
         for description in NUMBERS
     ]
-    
     for vehicle_id, vehicle in vehicles.items():
-        coor = coordinators[vehicle_id]
-        if hasattr(coor, "charging_schedule_coordinator"):
-            entities.append(RivianChargingScheduleAmperage(coor.charging_schedule_coordinator, vehicle))
-
+        coord = coordinators[vehicle_id]
+        await coord.get_charging_schedule_data()
+        entities.append(
+            RivianChargingScheduleAmperageEntity(coord, entry, vehicle)
+        )
     async_add_entities(entities)
+
+
+class RivianChargingScheduleAmperageEntity(RivianVehicleEntity, NumberEntity):
+    """Charging Schedule Amperage Entity."""
+
+    _attr_suggested_display_precision = 0
+
+    def __init__(
+        self,
+        coordinator: VehicleCoordinator,
+        config_entry: ConfigEntry,
+        vehicle: dict[str, Any],
+    ) -> None:
+        """Construct the charging schedule amperage entity."""
+        desc = RivianNumberEntityDescription(
+            key="charging_schedule_amperage",
+            name="Charging Schedule Amperage",
+            icon="mdi:current-ac",
+            native_min_value=8,
+            native_max_value=48,
+            native_step=2,
+            native_unit_of_measurement="A",
+            field="charging_schedule_amperage",
+            set_fn=lambda c, v: c.update_charging_schedule_data(amperage=int(v)),
+        )
+        super().__init__(coordinator, config_entry, desc, vehicle)
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def available(self) -> bool:
+        """Return availability."""
+        return self._available
+
+    @property
+    def native_value(self) -> int | None:
+        """Return native value."""
+        sched = self.coordinator._charging_schedule or {}
+        val = sched.get("amperage", 48)
+        return int(val) if val is not None else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set new value."""
+        await self.coordinator.update_charging_schedule_data(amperage=int(value))
 
 
 class RivianNumberEntity(RivianVehicleControlEntity, NumberEntity):
@@ -73,28 +116,3 @@ class RivianNumberEntity(RivianVehicleControlEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         await self.entity_description.set_fn(self.coordinator, value)
-
-class RivianChargingScheduleAmperage(RivianChargingScheduleEntity, NumberEntity):
-    """Representation of a Rivian charging schedule amperage."""
-
-    def __init__(self, coordinator, vehicle):
-        super().__init__(coordinator, vehicle)
-        self._attr_name = "Charging Schedule Amperage"
-        self._attr_unique_id = f"{self._vin}-charging_schedule_amperage"
-        self._attr_icon = "mdi:current-ac"
-        self._attr_native_min_value = 8
-        self._attr_native_max_value = 48
-        self._attr_native_step = 2
-        self._attr_native_unit_of_measurement = "A"
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the value of the entity."""
-        schedule = self._get_schedule()
-        return schedule.get("amperage", 48)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Set new value."""
-        schedule = self._get_schedule()
-        schedule["amperage"] = int(value)
-        await self.coordinator.set_charging_schedule([schedule])
