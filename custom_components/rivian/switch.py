@@ -108,12 +108,18 @@ class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
         """Construct the charging schedule enabled entity."""
         desc = RivianSwitchEntityDescription(
             key="charging_schedule_enabled",
+            name="Charging Schedule Enabled",
             translation_key="charging_schedule_enabled",
             is_on=lambda c: (c._charging_schedule or {}).get("enabled", True),
             turn_off=lambda c: c.update_charging_schedule_data(enabled=False),
             turn_on=lambda c: c.update_charging_schedule_data(enabled=True),
         )
         super().__init__(coordinator, config_entry, desc, vehicle)
+
+    @property
+    def available(self) -> bool:
+        """Return availability."""
+        return self._available
 
     @property
     def is_on(self) -> bool:

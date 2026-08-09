@@ -78,48 +78,6 @@ class RivianDataUpdateCoordinator(DataUpdateCoordinator[T], Generic[T], ABC):
                 self._schedule_refresh()
             _LOGGER.info("Polling set to %s seconds", seconds)
 
-        self._charging_schedule: dict[str, Any] | None = None
-        self._last_schedule_fetch: float = 0.0
-
-    async def get_charging_schedule_data(self, force_refresh: bool = False) -> dict[str, Any]:
-        """Fetch charging schedule via Rivian API."""
-        now = time.time()
-        if self._charging_schedule is None or (force_refresh and (now - self._last_schedule_fetch > 10)):
-            self._last_schedule_fetch = now
-            try:
-                response = await self.api.get_charging_schedules(self.vehicle_id)
-                res_json = await response.json()
-                if res_json and "data" in res_json and res_json["data"].get("getVehicle"):
-                    schedules = res_json["data"]["getVehicle"].get("chargingSchedules", [])
-                    if schedules:
-                        old_schedule = self._charging_schedule
-                        self._charging_schedule = schedules[0]
-                        if old_schedule != self._charging_schedule:
-                            self.async_update_listeners()
-            except Exception as err:
-                _LOGGER.error("Error fetching charging schedule: %s", err)
-
-            if self._charging_schedule is None:
-                self._charging_schedule = {
-                    "startTime": 1320,
-                    "duration": 480,
-                    "amperage": 48,
-                    "enabled": True,
-                    "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-                }
-        return self._charging_schedule
-
-    async def update_charging_schedule_data(self, **kwargs) -> None:
-        """Update charging schedule via Rivian API mutation."""
-        current = await self.get_charging_schedule_data()
-        current.update(kwargs)
-        try:
-            await self.api.set_charging_schedules(self.vehicle_id, [current])
-        except Exception as err:
-            _LOGGER.error("Error setting charging schedule: %s", err)
-        self._charging_schedule = current
-        self.async_update_listeners()
-
     async def _async_update_data(self) -> T:
         """Get the latest data from Rivian."""
         try:
@@ -189,6 +147,14 @@ class ChargingCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
         return await self.api.get_live_charging_session(
             vin=self.vehicle_id, properties=CHARGING_API_FIELDS
         )
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Get the latest data from Rivian, gracefully handling deprecated endpoint failures."""
+        try:
+            return await super()._async_update_data()
+        except Exception as err:
+            _LOGGER.warning("Live charging session endpoint error: %s", err)
+            return self.data or {}
 
     def adjust_update_interval(self, is_plugged_in: bool) -> None:
         """Adjust update interval based on plugged in status."""
@@ -313,9 +279,52 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
         self._initial = asyncio.Event()
         self._unsub_handler: Coroutine[None, None, None] | None = None
         self._awake = asyncio.Event()
+        self._charging_schedule: dict[str, Any] | None = None
+        self._last_schedule_fetch: float = 0.0
+
+    async def get_charging_schedule_data(self, force_refresh: bool = False) -> dict[str, Any]:
+        """Fetch charging schedule via Rivian API."""
+        now = time.time()
+        if self._charging_schedule is None or (force_refresh and (now - self._last_schedule_fetch > 10)):
+            self._last_schedule_fetch = now
+            try:
+                response = await self.api.get_charging_schedules(self.vehicle_id)
+                res_json = await response.json()
+                if res_json and "data" in res_json and res_json["data"].get("getVehicle"):
+                    schedules = res_json["data"]["getVehicle"].get("chargingSchedules", [])
+                    if schedules:
+                        old_schedule = self._charging_schedule
+                        self._charging_schedule = schedules[0]
+                        if old_schedule != self._charging_schedule:
+                            self.async_update_listeners()
+            except Exception as err:
+                _LOGGER.error("Error fetching charging schedule: %s", err)
+
+            if self._charging_schedule is None:
+                self._charging_schedule = {
+                    "startTime": 1320,
+                    "duration": 480,
+                    "amperage": 48,
+                    "enabled": True,
+                    "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                }
+        return self._charging_schedule
+
+    async def update_charging_schedule_data(self, **kwargs) -> None:
+        """Update charging schedule via Rivian API mutation."""
+        current = await self.get_charging_schedule_data()
+        current.update(kwargs)
+        try:
+            await self.api.set_charging_schedules(self.vehicle_id, [current])
+        except Exception as err:
+            _LOGGER.error("Error setting charging schedule: %s", err)
+        self._charging_schedule = current
+        self.async_update_listeners()
+
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Get the latest data from Rivian."""
+        await self.get_charging_schedule_data(force_refresh=True)
         if not self.data or not self.last_update_success:
             await self._unsubscribe()
             self._unsub_handler = await self.api.subscribe_for_vehicle_updates(
@@ -325,11 +334,11 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
             )
 
             try:
-                await asyncio.wait_for(self._initial.wait(), 1)
-            except asyncio.TimeoutError as err:
-                raise UpdateFailed from err
+                await asyncio.wait_for(self._initial.wait(), 10)
+            except asyncio.TimeoutError:
+                _LOGGER.warning("Initial WebSocket telemetry update timed out after 10s; setup proceeding")
 
-        return self.data
+        return self.data or {}
 
     async def _fetch_data(self) -> ClientResponse:
         """Fetch the data."""
@@ -351,8 +360,8 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
             return
         vehicle_info = self._build_vehicle_info_dict(pdata.get(self.key, {}))
         self.async_set_updated_data(vehicle_info)
-        self._error_count = 0
         self.hass.async_create_task(self.get_charging_schedule_data(force_refresh=True))
+        self._error_count = 0
         self._initial.set()
 
     def _build_vehicle_info_dict(self, vijson: dict[str, Any]) -> dict[str, Any]:

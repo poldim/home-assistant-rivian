@@ -116,6 +116,7 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
         """Construct the charging schedule days entity."""
         desc = RivianSensorEntityDescription(
             key="charging_schedule_days",
+            name="Charging Schedule Days",
             translation_key="charging_schedule_days",
             field="charging_schedule_days",
         )
@@ -136,21 +137,9 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
         days = set(raw_days)
 
         all_days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
-        weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
-        weekends = {"Saturday", "Sunday"}
-
-        if days == all_days:
-            return "daily"
-        if days == weekdays:
-            return "weekdays"
-        if days == weekends:
-            return "weekends"
-
-        ordered = [
-            d for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-            if d in days
-        ]
-        return ", ".join(ordered)
+        if len(days) == 7 or days == all_days:
+            return "Daily"
+        return "Weekdays"
 
 
 class RivianSensorEntity(RivianVehicleEntity, SensorEntity):

@@ -52,6 +52,7 @@ async def _async_set_end_time(coordinator: VehicleCoordinator, value: time) -> N
 TIME_ENTITIES: Final[tuple[RivianTimeEntityDescription, ...]] = (
     RivianTimeEntityDescription(
         key="charging_schedule_start",
+        name="Charging Schedule Start Time",
         translation_key="charging_schedule_start",
         value_fn=lambda c: (
             time(
@@ -63,6 +64,7 @@ TIME_ENTITIES: Final[tuple[RivianTimeEntityDescription, ...]] = (
     ),
     RivianTimeEntityDescription(
         key="charging_schedule_end",
+        name="Charging Schedule End Time",
         translation_key="charging_schedule_end",
         value_fn=lambda c: (
             time(
