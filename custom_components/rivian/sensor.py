@@ -116,8 +116,7 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
         """Construct the charging schedule days entity."""
         desc = RivianSensorEntityDescription(
             key="charging_schedule_days",
-            name="Charging Schedule Days",
-            icon="mdi:calendar-week",
+            translation_key="charging_schedule_days",
             field="charging_schedule_days",
         )
         super().__init__(coordinator, config_entry, desc, vehicle)
@@ -131,10 +130,27 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
     def native_value(self) -> str | None:
         """Return native value."""
         sched = self.coordinator._charging_schedule or {}
-        days = sched.get("weekDays", [])
-        if isinstance(days, list):
-            return ", ".join(days) if days else "Everyday"
-        return str(days)
+        raw_days = sched.get("weekDays", [])
+        if not raw_days or not isinstance(raw_days, list):
+            return None
+        days = set(raw_days)
+
+        all_days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+        weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
+        weekends = {"Saturday", "Sunday"}
+
+        if days == all_days:
+            return "daily"
+        if days == weekdays:
+            return "weekdays"
+        if days == weekends:
+            return "weekends"
+
+        ordered = [
+            d for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            if d in days
+        ]
+        return ", ".join(ordered)
 
 
 class RivianSensorEntity(RivianVehicleEntity, SensorEntity):

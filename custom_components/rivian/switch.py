@@ -108,8 +108,7 @@ class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
         """Construct the charging schedule enabled entity."""
         desc = RivianSwitchEntityDescription(
             key="charging_schedule_enabled",
-            name="Charging Schedule Enabled",
-            icon="mdi:calendar-clock",
+            translation_key="charging_schedule_enabled",
             is_on=lambda c: (c._charging_schedule or {}).get("enabled", True),
             turn_off=lambda c: c.update_charging_schedule_data(enabled=False),
             turn_on=lambda c: c.update_charging_schedule_data(enabled=True),
