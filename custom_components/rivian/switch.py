@@ -72,6 +72,14 @@ SWITCHES: Final[tuple[RivianSwitchEntityDescription, ...]] = (
     ),
 )
 
+CHARGING_SCHEDULE_ENABLED_SWITCH = RivianSwitchEntityDescription(
+    key="charging_schedule_enabled",
+    translation_key="charging_schedule_enabled",
+    is_on=lambda c: (c._charging_schedule or {}).get("enabled", True),
+    turn_off=lambda c: c.update_charging_schedule_data({"enabled": False}),
+    turn_on=lambda c: c.update_charging_schedule_data({"enabled": True}),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -108,14 +116,7 @@ class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
         vehicle: dict[str, Any],
     ) -> None:
         """Construct the charging schedule enabled entity."""
-        desc = RivianSwitchEntityDescription(
-            key="charging_schedule_enabled",
-            translation_key="charging_schedule_enabled",
-            is_on=lambda c: (c._charging_schedule or {}).get("enabled", True),
-            turn_off=lambda c: c.update_charging_schedule_data(enabled=False),
-            turn_on=lambda c: c.update_charging_schedule_data(enabled=True),
-        )
-        super().__init__(coordinator, config_entry, desc, vehicle)
+        super().__init__(coordinator, config_entry, CHARGING_SCHEDULE_ENABLED_SWITCH, vehicle)
 
     @property
     def available(self) -> bool:

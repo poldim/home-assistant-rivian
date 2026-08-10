@@ -305,10 +305,10 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
                 self._charging_schedule = dict(DEFAULT_CHARGING_SCHEDULE)
         return self._charging_schedule
 
-    async def update_charging_schedule_data(self, **kwargs) -> None:
+    async def update_charging_schedule_data(self, schedule: dict[str, Any]) -> None:
         """Update charging schedule via Rivian API mutation."""
         current = await self.get_charging_schedule_data()
-        current.update(kwargs)
+        current.update(schedule)
         try:
             await self.api.set_charging_schedules(self.vehicle_id, [current])
         except Exception as err:

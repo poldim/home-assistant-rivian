@@ -57,7 +57,7 @@ async def _async_set_schedule_time(
         duration = target_mins - start_mins
         if duration <= 0:
             duration += MINUTES_PER_DAY
-        await coordinator.update_charging_schedule_data(duration=duration)
+        await coordinator.update_charging_schedule_data({"duration": duration})
     else:
         old_dur = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)
         old_end = (start_mins + old_dur) % MINUTES_PER_DAY
@@ -65,7 +65,7 @@ async def _async_set_schedule_time(
         if new_dur <= 0:
             new_dur += MINUTES_PER_DAY
         await coordinator.update_charging_schedule_data(
-            startTime=target_mins, duration=new_dur
+            {"startTime": target_mins, "duration": new_dur}
         )
 
 
@@ -109,16 +109,6 @@ class RivianChargingScheduleTimeEntity(RivianVehicleEntity, TimeEntity):
     """Charging Schedule Time Entity."""
 
     entity_description: RivianTimeEntityDescription
-
-    def __init__(
-        self,
-        coordinator: VehicleCoordinator,
-        config_entry: ConfigEntry,
-        description: RivianTimeEntityDescription,
-        vehicle: dict[str, Any],
-    ) -> None:
-        """Construct the charging schedule time entity."""
-        super().__init__(coordinator, config_entry, description, vehicle)
 
     @property
     def available(self) -> bool:

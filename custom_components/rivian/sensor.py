@@ -29,7 +29,14 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import ATTR_COORDINATOR, ATTR_VEHICLE, ATTR_WALLBOX, DOMAIN, SENSORS
+from .const import (
+    ATTR_COORDINATOR,
+    ATTR_VEHICLE,
+    ATTR_WALLBOX,
+    DOMAIN,
+    SENSORS,
+    WEEK_DAYS_ORDERED,
+)
 from .coordinator import DriverKeyCoordinator, VehicleCoordinator, WallboxCoordinator
 from .data_classes import (
     RivianSensorEntityDescription,
@@ -44,15 +51,6 @@ from .entity import (
 
 _LOGGER = logging.getLogger(__name__)
 
-WEEK_DAYS_ORDERED: Final[tuple[str, ...]] = (
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-)
 ALL_WEEK_DAYS: Final[frozenset[str]] = frozenset(WEEK_DAYS_ORDERED)
 WEEKDAYS_ONLY: Final[frozenset[str]] = frozenset(WEEK_DAYS_ORDERED[:5])
 
@@ -116,6 +114,13 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
+CHARGING_SCHEDULE_DAYS_SENSOR = RivianSensorEntityDescription(
+    key="charging_schedule_days",
+    translation_key="charging_schedule_days",
+    field="charging_schedule_days",
+)
+
+
 class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
     """Charging Schedule Days Entity."""
 
@@ -126,12 +131,7 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
         vehicle: dict[str, Any],
     ) -> None:
         """Construct the charging schedule days entity."""
-        desc = RivianSensorEntityDescription(
-            key="charging_schedule_days",
-            translation_key="charging_schedule_days",
-            field="charging_schedule_days",
-        )
-        super().__init__(coordinator, config_entry, desc, vehicle)
+        super().__init__(coordinator, config_entry, CHARGING_SCHEDULE_DAYS_SENSOR, vehicle)
 
     @property
     def available(self) -> bool:

@@ -1077,6 +1077,16 @@ CHARGING_API_FIELDS: Final[set[str]] = {
     "totalChargedEnergy",
 }
 
+WEEK_DAYS_ORDERED: Final[tuple[str, ...]] = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
+
 DEFAULT_CHARGING_SCHEDULE_START: Final[int] = 1320
 DEFAULT_CHARGING_SCHEDULE_DURATION: Final[int] = 480
 DEFAULT_CHARGING_SCHEDULE_AMPERAGE: Final[int] = 48
@@ -1090,5 +1100,5 @@ DEFAULT_CHARGING_SCHEDULE: Final[dict[str, Any]] = {
     "duration": DEFAULT_CHARGING_SCHEDULE_DURATION,
     "amperage": DEFAULT_CHARGING_SCHEDULE_AMPERAGE,
     "enabled": True,
-    "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    "weekDays": list(WEEK_DAYS_ORDERED),
 }
