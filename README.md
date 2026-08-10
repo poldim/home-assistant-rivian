@@ -211,8 +211,8 @@ Note: If you are having issues with pairing your vehicle, we recommend investing
 | Charging Enabled               | Switch  | Enable/disable charging while vehicle plugged in and below battery state of charge limit                                                                  |
 | Charging Schedule Amperage     | Number  | Set charging schedule amperage limit                                                                                                                      |
 | Charging Schedule Enabled      | Switch  | Enable/disable charging schedule                                                                                                                          |
-| Charging Schedule End Time     | Time    | Set charging schedule end time                                                                                                                            |
-| Charging Schedule Start Time   | Time    | Set charging schedule start time                                                                                                                          |
+| Charging Schedule End          | Time    | Set charging schedule end time                                                                                                                            |
+| Charging Schedule Start        | Time    | Set charging schedule start time                                                                                                                          |
 | Closures                       | Lock    | Lock/unlock all closures                                                                                                                                  |
 | Drop Tailgate                  | Button  | Drop tailgate                                                                                                                                             |
 | Front Trunk                    | Cover   | Open/close front trunk                                                                                                                                    |

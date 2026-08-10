@@ -16,11 +16,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     ATTR_COORDINATOR,
     ATTR_VEHICLE,
+    CHARGING_SCHEDULE_AMPERAGE_MAXIMUM,
+    CHARGING_SCHEDULE_AMPERAGE_MINIMUM,
     CHARGING_SCHEDULE_AMPERAGE_STEP,
     DEFAULT_CHARGING_SCHEDULE_AMPERAGE,
     DOMAIN,
-    MAXIMUM_CHARGING_SCHEDULE_AMPERAGE,
-    MINIMUM_CHARGING_SCHEDULE_AMPERAGE,
 )
 from .coordinator import VehicleCoordinator
 from .data_classes import RivianNumberEntityDescription
@@ -48,8 +48,8 @@ CHARGING_SCHEDULE_AMPERAGE_NUMBER = RivianNumberEntityDescription(
     key="charging_schedule_amperage",
     translation_key="charging_schedule_amperage",
     device_class=NumberDeviceClass.CURRENT,
-    native_min_value=MINIMUM_CHARGING_SCHEDULE_AMPERAGE,
-    native_max_value=MAXIMUM_CHARGING_SCHEDULE_AMPERAGE,
+    native_min_value=CHARGING_SCHEDULE_AMPERAGE_MINIMUM,
+    native_max_value=CHARGING_SCHEDULE_AMPERAGE_MAXIMUM,
     native_step=CHARGING_SCHEDULE_AMPERAGE_STEP,
     native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
     field="charging_schedule_amperage",
