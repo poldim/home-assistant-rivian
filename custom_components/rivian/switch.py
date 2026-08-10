@@ -99,6 +99,8 @@ async def async_setup_entry(
 class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
     """Charging Schedule Enabled Entity."""
 
+    entity_description: RivianSwitchEntityDescription
+
     def __init__(
         self,
         coordinator: VehicleCoordinator,
@@ -108,7 +110,6 @@ class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
         """Construct the charging schedule enabled entity."""
         desc = RivianSwitchEntityDescription(
             key="charging_schedule_enabled",
-            name="Charging Schedule Enabled",
             translation_key="charging_schedule_enabled",
             is_on=lambda c: (c._charging_schedule or {}).get("enabled", True),
             turn_off=lambda c: c.update_charging_schedule_data(enabled=False),
@@ -124,16 +125,15 @@ class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return True if entity is on."""
-        sched = self.coordinator._charging_schedule or {}
-        return sched.get("enabled", True)
+        return self.entity_description.is_on(self.coordinator)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
-        await self.coordinator.update_charging_schedule_data(enabled=True)
+        await self.entity_description.turn_on(self.coordinator)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        await self.coordinator.update_charging_schedule_data(enabled=False)
+        await self.entity_description.turn_off(self.coordinator)
 
 
 class RivianSwitchEntity(RivianVehicleControlEntity, SwitchEntity):

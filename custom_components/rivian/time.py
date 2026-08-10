@@ -18,18 +18,45 @@ from .entity import RivianVehicleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
+DEFAULT_CHARGING_SCHEDULE_START = 1320
+DEFAULT_CHARGING_SCHEDULE_DURATION = 480
+MINUTES_PER_DAY = 1440
+MINUTES_PER_HOUR = 60
+
+
+def _get_start_time(coordinator: VehicleCoordinator) -> time:
+    """Get start time from schedule coordinator."""
+    sched = coordinator._charging_schedule or {}
+    start_mins = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
+    return time(
+        hour=(start_mins // MINUTES_PER_HOUR) % 24,
+        minute=start_mins % MINUTES_PER_HOUR,
+    )
+
+
+def _get_end_time(coordinator: VehicleCoordinator) -> time:
+    """Get end time from schedule coordinator."""
+    sched = coordinator._charging_schedule or {}
+    start_mins = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
+    duration = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)
+    end_mins = (start_mins + duration) % MINUTES_PER_DAY
+    return time(
+        hour=(end_mins // MINUTES_PER_HOUR) % 24,
+        minute=end_mins % MINUTES_PER_HOUR,
+    )
+
 
 async def _async_set_start_time(coordinator: VehicleCoordinator, value: time) -> None:
     """Set start time for schedule."""
     sched = await coordinator.get_charging_schedule_data()
-    old_start = sched.get("startTime", 1320)
-    old_dur = sched.get("duration", 480)
-    old_end = (old_start + old_dur) % 1440
+    old_start = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
+    old_dur = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)
+    old_end = (old_start + old_dur) % MINUTES_PER_DAY
 
-    new_start = value.hour * 60 + value.minute
+    new_start = value.hour * MINUTES_PER_HOUR + value.minute
     new_dur = old_end - new_start
     if new_dur <= 0:
-        new_dur += 1440
+        new_dur += MINUTES_PER_DAY
 
     await coordinator.update_charging_schedule_data(
         startTime=new_start, duration=new_dur
@@ -39,12 +66,12 @@ async def _async_set_start_time(coordinator: VehicleCoordinator, value: time) ->
 async def _async_set_end_time(coordinator: VehicleCoordinator, value: time) -> None:
     """Set end time for schedule."""
     sched = await coordinator.get_charging_schedule_data()
-    start_mins = sched.get("startTime", 1320)
-    end_mins = value.hour * 60 + value.minute
+    start_mins = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
+    end_mins = value.hour * MINUTES_PER_HOUR + value.minute
 
     duration = end_mins - start_mins
     if duration <= 0:
-        duration += 1440
+        duration += MINUTES_PER_DAY
 
     await coordinator.update_charging_schedule_data(duration=duration)
 
@@ -52,37 +79,14 @@ async def _async_set_end_time(coordinator: VehicleCoordinator, value: time) -> N
 TIME_ENTITIES: Final[tuple[RivianTimeEntityDescription, ...]] = (
     RivianTimeEntityDescription(
         key="charging_schedule_start",
-        name="Charging Schedule Start Time",
         translation_key="charging_schedule_start",
-        value_fn=lambda c: (
-            time(
-                hour=((c._charging_schedule or {}).get("startTime", 1320) // 60) % 24,
-                minute=(c._charging_schedule or {}).get("startTime", 1320) % 60,
-            )
-        ),
+        value_fn=_get_start_time,
         set_fn=_async_set_start_time,
     ),
     RivianTimeEntityDescription(
         key="charging_schedule_end",
-        name="Charging Schedule End Time",
         translation_key="charging_schedule_end",
-        value_fn=lambda c: (
-            time(
-                hour=(
-                    (
-                        (c._charging_schedule or {}).get("startTime", 1320)
-                        + (c._charging_schedule or {}).get("duration", 480)
-                    )
-                    // 60
-                )
-                % 24,
-                minute=(
-                    (c._charging_schedule or {}).get("startTime", 1320)
-                    + (c._charging_schedule or {}).get("duration", 480)
-                )
-                % 60,
-            )
-        ),
+        value_fn=_get_end_time,
         set_fn=_async_set_end_time,
     ),
 )

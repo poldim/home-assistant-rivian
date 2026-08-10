@@ -74,7 +74,6 @@ class RivianChargingScheduleAmperageEntity(RivianVehicleEntity, NumberEntity):
         """Construct the charging schedule amperage entity."""
         desc = RivianNumberEntityDescription(
             key="charging_schedule_amperage",
-            name="Charging Schedule Amperage",
             translation_key="charging_schedule_amperage",
             device_class=NumberDeviceClass.CURRENT,
             native_min_value=8,
