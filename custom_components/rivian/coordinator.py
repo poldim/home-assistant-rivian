@@ -288,16 +288,31 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
         self._charging_schedule: dict[str, Any] | None = None
         self._last_schedule_fetch: float = 0.0
 
-    async def get_charging_schedule_data(self, force_refresh: bool = False) -> dict[str, Any]:
+    @property
+    def charging_schedule(self) -> dict[str, Any]:
+        """Return the charging schedule or empty dict."""
+        return self._charging_schedule or {}
+
+    async def get_charging_schedule_data(
+        self, force_refresh: bool = False
+    ) -> dict[str, Any]:
         """Fetch charging schedule via Rivian API."""
         now = time.time()
-        if self._charging_schedule is None or (force_refresh and (now - self._last_schedule_fetch > 10)):
+        if self._charging_schedule is None or (
+            force_refresh and (now - self._last_schedule_fetch > 10)
+        ):
             self._last_schedule_fetch = now
             try:
                 response = await self.api.get_charging_schedules(self.vehicle_id)
                 res_json = await response.json()
-                if res_json and "data" in res_json and res_json["data"].get("getVehicle"):
-                    schedules = res_json["data"]["getVehicle"].get("chargingSchedules", [])
+                if (
+                    res_json
+                    and "data" in res_json
+                    and res_json["data"].get("getVehicle")
+                ):
+                    schedules = res_json["data"]["getVehicle"].get(
+                        "chargingSchedules", []
+                    )
                     if schedules:
                         old_schedule = self._charging_schedule
                         self._charging_schedule = schedules[0]
@@ -321,7 +336,6 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
         self._charging_schedule = current
         self.async_update_listeners()
 
-
     async def _async_update_data(self) -> dict[str, Any]:
         """Get the latest data from Rivian."""
         await self.get_charging_schedule_data(force_refresh=True)
@@ -336,7 +350,9 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
             try:
                 await asyncio.wait_for(self._initial.wait(), 10)
             except asyncio.TimeoutError:
-                _LOGGER.warning("Initial WebSocket telemetry update timed out after 10s; setup proceeding")
+                _LOGGER.warning(
+                    "Initial WebSocket telemetry update timed out after 10s; setup proceeding"
+                )
 
         return self.data or {}
 

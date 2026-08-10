@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import time
 import logging
-from typing import Final, Any
+from typing import Any, Final
 
 from homeassistant.components.time import TimeEntity
 from homeassistant.config_entries import ConfigEntry
@@ -31,7 +31,7 @@ def _get_schedule_time(
     coordinator: VehicleCoordinator, is_end_time: bool = False
 ) -> time:
     """Get start or end time from schedule coordinator."""
-    sched = coordinator._charging_schedule or {}
+    sched = coordinator.charging_schedule
     start_mins = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
     if is_end_time:
         duration = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)

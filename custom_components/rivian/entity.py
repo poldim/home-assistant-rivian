@@ -108,7 +108,11 @@ class RivianVehicleControlEntity(RivianVehicleEntity):
         device = self.coordinator.drivers_coordinator.get_device_details(
             phone_info[1].get(self.coordinator.vehicle_id)
         )
-        self._available = device["isPaired"] if device and isinstance(device, dict) and "isPaired" in device else True
+        self._available = (
+            device["isPaired"]
+            if device and isinstance(device, dict) and "isPaired" in device
+            else True
+        )
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

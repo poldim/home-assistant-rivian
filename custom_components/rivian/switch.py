@@ -35,10 +35,13 @@ SWITCHES: Final[tuple[RivianSwitchEntityDescription, ...]] = (
         key="charging_enabled",
         icon="mdi:lightning-bolt",
         name="Charging Enabled",
-        available=lambda coor: coor.get("remoteChargingAvailable") == 1
-        or coor.get("chargerState") == "charging_active",
-        is_on=lambda coor: coor.get("chargerState")
-        in ("charging_active", "charging_connecting"),
+        available=lambda coor: (
+            coor.get("remoteChargingAvailable") == 1
+            or coor.get("chargerState") == "charging_active"
+        ),
+        is_on=lambda coor: (
+            coor.get("chargerState") in ("charging_active", "charging_connecting")
+        ),
         turn_off=lambda coor: coor.send_vehicle_command(
             command=VehicleCommand.STOP_CHARGING
         ),
@@ -75,7 +78,7 @@ SWITCHES: Final[tuple[RivianSwitchEntityDescription, ...]] = (
 CHARGING_SCHEDULE_ENABLED_SWITCH = RivianSwitchEntityDescription(
     key="charging_schedule_enabled",
     translation_key="charging_schedule_enabled",
-    is_on=lambda c: (c._charging_schedule or {}).get("enabled", True),
+    is_on=lambda c: c.charging_schedule.get("enabled", True),
     turn_off=lambda c: c.update_charging_schedule_data({"enabled": False}),
     turn_on=lambda c: c.update_charging_schedule_data({"enabled": True}),
 )
@@ -99,7 +102,9 @@ async def async_setup_entry(
         coord = coordinators[vehicle_id]
         await coord.get_charging_schedule_data()
         entities.append(
-            RivianChargingScheduleEnabledEntity(coord, entry, vehicle)
+            RivianChargingScheduleEnabledEntity(
+                coord, entry, CHARGING_SCHEDULE_ENABLED_SWITCH, vehicle
+            )
         )
     async_add_entities(entities)
 
@@ -108,15 +113,6 @@ class RivianChargingScheduleEnabledEntity(RivianVehicleEntity, SwitchEntity):
     """Charging Schedule Enabled Entity."""
 
     entity_description: RivianSwitchEntityDescription
-
-    def __init__(
-        self,
-        coordinator: VehicleCoordinator,
-        config_entry: ConfigEntry,
-        vehicle: dict[str, Any],
-    ) -> None:
-        """Construct the charging schedule enabled entity."""
-        super().__init__(coordinator, config_entry, CHARGING_SCHEDULE_ENABLED_SWITCH, vehicle)
 
     @property
     def available(self) -> bool:

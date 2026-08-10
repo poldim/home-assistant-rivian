@@ -75,7 +75,9 @@ async def async_setup_entry(
         coord = coordinators[vehicle_id]
         await coord.get_charging_schedule_data()
         entities.append(
-            RivianChargingScheduleAmperageEntity(coord, entry, vehicle)
+            RivianChargingScheduleAmperageEntity(
+                coord, entry, CHARGING_SCHEDULE_AMPERAGE_NUMBER, vehicle
+            )
         )
     async_add_entities(entities)
 
@@ -83,14 +85,7 @@ async def async_setup_entry(
 class RivianChargingScheduleAmperageEntity(RivianVehicleEntity, NumberEntity):
     """Charging Schedule Amperage Entity."""
 
-    def __init__(
-        self,
-        coordinator: VehicleCoordinator,
-        config_entry: ConfigEntry,
-        vehicle: dict[str, Any],
-    ) -> None:
-        """Construct the charging schedule amperage entity."""
-        super().__init__(coordinator, config_entry, CHARGING_SCHEDULE_AMPERAGE_NUMBER, vehicle)
+    entity_description: RivianNumberEntityDescription
 
     @property
     def available(self) -> bool:
@@ -100,13 +95,13 @@ class RivianChargingScheduleAmperageEntity(RivianVehicleEntity, NumberEntity):
     @property
     def native_value(self) -> int | None:
         """Return native value."""
-        sched = self.coordinator._charging_schedule or {}
+        sched = self.coordinator.charging_schedule
         val = sched.get("amperage", DEFAULT_CHARGING_SCHEDULE_AMPERAGE)
         return int(val) if val is not None else None
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        await self.coordinator.update_charging_schedule_data({"amperage": int(value)})
+        await self.entity_description.set_fn(self.coordinator, value)
 
 
 class RivianNumberEntity(RivianVehicleControlEntity, NumberEntity):

@@ -109,7 +109,11 @@ async def async_setup_entry(
 
     for vehicle_id, vehicle in vehicles.items():
         coord = vehicle_coordinators[vehicle_id]
-        entities.append(RivianChargingScheduleDaysEntity(coord, entry, vehicle))
+        entities.append(
+            RivianChargingScheduleDaysEntity(
+                coord, entry, CHARGING_SCHEDULE_DAYS_SENSOR, vehicle
+            )
+        )
 
     async_add_entities(entities)
 
@@ -124,15 +128,6 @@ CHARGING_SCHEDULE_DAYS_SENSOR = RivianSensorEntityDescription(
 class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
     """Charging Schedule Days Entity."""
 
-    def __init__(
-        self,
-        coordinator: VehicleCoordinator,
-        config_entry: ConfigEntry,
-        vehicle: dict[str, Any],
-    ) -> None:
-        """Construct the charging schedule days entity."""
-        super().__init__(coordinator, config_entry, CHARGING_SCHEDULE_DAYS_SENSOR, vehicle)
-
     @property
     def available(self) -> bool:
         """Return availability."""
@@ -141,7 +136,7 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
     @property
     def native_value(self) -> str | None:
         """Return native value."""
-        sched = self.coordinator._charging_schedule or {}
+        sched = self.coordinator.charging_schedule
         raw_days = sched.get("weekDays", [])
         if not raw_days or not isinstance(raw_days, list):
             return None
@@ -275,9 +270,9 @@ CHARGING_SENSORS: Final[tuple[RivianSensorEntityDescription, ...]] = (
         field="startTime",
         name="Charging Start Time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_lambda=lambda val: datetime.strptime(val, RIVIAN_TIMESTAMP_FORMAT)
-        if val
-        else val,
+        value_lambda=lambda val: (
+            datetime.strptime(val, RIVIAN_TIMESTAMP_FORMAT) if val else val
+        ),
     ),
     RivianSensorEntityDescription(
         key="charging_time_elapsed",
