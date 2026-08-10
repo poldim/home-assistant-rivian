@@ -52,7 +52,7 @@
     },
     "number": {
       "charging_schedule_amperage": {
-        "name": "Charging Schedule Amperage"
+        "name": "Charging schedule amperage"
       }
     },
     "sensor": {
@@ -60,7 +60,7 @@
         "name": "Active driver"
       },
       "charging_schedule_days": {
-        "name": "Charging Schedule Days",
+        "name": "Charging schedule days",
         "state": {
           "daily": "Daily",
           "weekdays": "Weekdays"
@@ -78,15 +78,15 @@
     },
     "switch": {
       "charging_schedule_enabled": {
-        "name": "Charging Schedule Enabled"
+        "name": "Charging schedule enabled"
       }
     },
     "time": {
       "charging_schedule_start": {
-        "name": "Charging Schedule Start Time"
+        "name": "Charging schedule start time"
       },
       "charging_schedule_end": {
-        "name": "Charging Schedule End Time"
+        "name": "Charging schedule end time"
       }
     }
   },
