@@ -44,6 +44,18 @@ from .entity import (
 
 _LOGGER = logging.getLogger(__name__)
 
+WEEK_DAYS_ORDERED: Final[tuple[str, ...]] = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
+ALL_WEEK_DAYS: Final[frozenset[str]] = frozenset(WEEK_DAYS_ORDERED)
+WEEKDAYS_ONLY: Final[frozenset[str]] = frozenset(WEEK_DAYS_ORDERED[:5])
+
 RIVIAN_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 
 
@@ -133,20 +145,14 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
         raw_days = sched.get("weekDays", [])
         if not raw_days or not isinstance(raw_days, list):
             return None
-        days = set(raw_days)
+        days = frozenset(raw_days)
 
-        all_days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
-        weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
-
-        if days == all_days:
+        if days == ALL_WEEK_DAYS:
             return "Daily"
-        if days == weekdays:
+        if days == WEEKDAYS_ONLY:
             return "Weekdays"
 
-        ordered = [
-            d for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-            if d in days
-        ]
+        ordered = [d for d in WEEK_DAYS_ORDERED if d in days]
         return ", ".join(ordered)
 
 

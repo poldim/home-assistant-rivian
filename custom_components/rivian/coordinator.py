@@ -29,6 +29,7 @@ from .const import (
     ATTR_USER,
     ATTR_VEHICLE,
     CHARGING_API_FIELDS,
+    DEFAULT_CHARGING_SCHEDULE,
     DOMAIN,
     INVALID_SENSOR_STATES,
     VEHICLE_STATE_API_FIELDS,
@@ -301,13 +302,7 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.error("Error fetching charging schedule: %s", err)
 
             if self._charging_schedule is None:
-                self._charging_schedule = {
-                    "startTime": 1320,
-                    "duration": 480,
-                    "amperage": 48,
-                    "enabled": True,
-                    "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-                }
+                self._charging_schedule = dict(DEFAULT_CHARGING_SCHEDULE)
         return self._charging_schedule
 
     async def update_charging_schedule_data(self, **kwargs) -> None:

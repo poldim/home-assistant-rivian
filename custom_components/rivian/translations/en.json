@@ -83,10 +83,10 @@
     },
     "time": {
       "charging_schedule_start": {
-        "name": "Charging schedule start time"
+        "name": "Charging schedule start"
       },
       "charging_schedule_end": {
-        "name": "Charging schedule end time"
+        "name": "Charging schedule end"
       }
     }
   },

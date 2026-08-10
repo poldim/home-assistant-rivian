@@ -9,11 +9,19 @@ from rivian import VehicleCommand
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ATTR_COORDINATOR, ATTR_VEHICLE, DOMAIN
+from .const import (
+    ATTR_COORDINATOR,
+    ATTR_VEHICLE,
+    CHARGING_SCHEDULE_AMPERAGE_STEP,
+    DEFAULT_CHARGING_SCHEDULE_AMPERAGE,
+    DOMAIN,
+    MAXIMUM_CHARGING_SCHEDULE_AMPERAGE,
+    MINIMUM_CHARGING_SCHEDULE_AMPERAGE,
+)
 from .coordinator import VehicleCoordinator
 from .data_classes import RivianNumberEntityDescription
 from .entity import RivianVehicleControlEntity, RivianVehicleEntity
@@ -76,10 +84,10 @@ class RivianChargingScheduleAmperageEntity(RivianVehicleEntity, NumberEntity):
             key="charging_schedule_amperage",
             translation_key="charging_schedule_amperage",
             device_class=NumberDeviceClass.CURRENT,
-            native_min_value=8,
-            native_max_value=48,
-            native_step=2,
-            native_unit_of_measurement="A",
+            native_min_value=MINIMUM_CHARGING_SCHEDULE_AMPERAGE,
+            native_max_value=MAXIMUM_CHARGING_SCHEDULE_AMPERAGE,
+            native_step=CHARGING_SCHEDULE_AMPERAGE_STEP,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             field="charging_schedule_amperage",
             set_fn=lambda c, v: c.update_charging_schedule_data(amperage=int(v)),
         )
@@ -95,7 +103,7 @@ class RivianChargingScheduleAmperageEntity(RivianVehicleEntity, NumberEntity):
     def native_value(self) -> int | None:
         """Return native value."""
         sched = self.coordinator._charging_schedule or {}
-        val = sched.get("amperage", 48)
+        val = sched.get("amperage", DEFAULT_CHARGING_SCHEDULE_AMPERAGE)
         return int(val) if val is not None else None
 
     async def async_set_native_value(self, value: float) -> None:

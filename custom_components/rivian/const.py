@@ -25,7 +25,7 @@ from .data_classes import (
 
 NAME = "Rivian (Unofficial)"
 DOMAIN = "rivian"
-VERSION = "0.0.0"
+VERSION = "1.5.3b0"
 ISSUE_URL = "https://github.com/bretterer/home-assistant-rivian/issues"
 
 # Attributes
@@ -1075,4 +1075,20 @@ CHARGING_API_FIELDS: Final[set[str]] = {
     "startTime",
     "timeElapsed",
     "totalChargedEnergy",
+}
+
+DEFAULT_CHARGING_SCHEDULE_START: Final[int] = 1320
+DEFAULT_CHARGING_SCHEDULE_DURATION: Final[int] = 480
+DEFAULT_CHARGING_SCHEDULE_AMPERAGE: Final[int] = 48
+MINIMUM_CHARGING_SCHEDULE_AMPERAGE: Final[int] = 8
+MAXIMUM_CHARGING_SCHEDULE_AMPERAGE: Final[int] = 48
+CHARGING_SCHEDULE_AMPERAGE_STEP: Final[int] = 2
+MINUTES_PER_DAY: Final[int] = 1440
+MINUTES_PER_HOUR: Final[int] = 60
+DEFAULT_CHARGING_SCHEDULE: Final[dict[str, Any]] = {
+    "startTime": DEFAULT_CHARGING_SCHEDULE_START,
+    "duration": DEFAULT_CHARGING_SCHEDULE_DURATION,
+    "amperage": DEFAULT_CHARGING_SCHEDULE_AMPERAGE,
+    "enabled": True,
+    "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
 }

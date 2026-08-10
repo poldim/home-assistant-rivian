@@ -11,83 +11,76 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ATTR_COORDINATOR, ATTR_VEHICLE, DOMAIN
+from .const import (
+    ATTR_COORDINATOR,
+    ATTR_VEHICLE,
+    DEFAULT_CHARGING_SCHEDULE_DURATION,
+    DEFAULT_CHARGING_SCHEDULE_START,
+    DOMAIN,
+    MINUTES_PER_DAY,
+    MINUTES_PER_HOUR,
+)
 from .coordinator import VehicleCoordinator
 from .data_classes import RivianTimeEntityDescription
 from .entity import RivianVehicleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_CHARGING_SCHEDULE_START = 1320
-DEFAULT_CHARGING_SCHEDULE_DURATION = 480
-MINUTES_PER_DAY = 1440
-MINUTES_PER_HOUR = 60
 
-
-def _get_start_time(coordinator: VehicleCoordinator) -> time:
-    """Get start time from schedule coordinator."""
+def _get_schedule_time(
+    coordinator: VehicleCoordinator, is_end_time: bool = False
+) -> time:
+    """Get start or end time from schedule coordinator."""
     sched = coordinator._charging_schedule or {}
     start_mins = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
+    if is_end_time:
+        duration = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)
+        mins = (start_mins + duration) % MINUTES_PER_DAY
+    else:
+        mins = start_mins
+
     return time(
-        hour=(start_mins // MINUTES_PER_HOUR) % 24,
-        minute=start_mins % MINUTES_PER_HOUR,
+        hour=(mins // MINUTES_PER_HOUR) % 24,
+        minute=mins % MINUTES_PER_HOUR,
     )
 
 
-def _get_end_time(coordinator: VehicleCoordinator) -> time:
-    """Get end time from schedule coordinator."""
-    sched = coordinator._charging_schedule or {}
-    start_mins = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
-    duration = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)
-    end_mins = (start_mins + duration) % MINUTES_PER_DAY
-    return time(
-        hour=(end_mins // MINUTES_PER_HOUR) % 24,
-        minute=end_mins % MINUTES_PER_HOUR,
-    )
-
-
-async def _async_set_start_time(coordinator: VehicleCoordinator, value: time) -> None:
-    """Set start time for schedule."""
-    sched = await coordinator.get_charging_schedule_data()
-    old_start = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
-    old_dur = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)
-    old_end = (old_start + old_dur) % MINUTES_PER_DAY
-
-    new_start = value.hour * MINUTES_PER_HOUR + value.minute
-    new_dur = old_end - new_start
-    if new_dur <= 0:
-        new_dur += MINUTES_PER_DAY
-
-    await coordinator.update_charging_schedule_data(
-        startTime=new_start, duration=new_dur
-    )
-
-
-async def _async_set_end_time(coordinator: VehicleCoordinator, value: time) -> None:
-    """Set end time for schedule."""
+async def _async_set_schedule_time(
+    coordinator: VehicleCoordinator, value: time, is_end_time: bool = False
+) -> None:
+    """Set start or end time for schedule."""
     sched = await coordinator.get_charging_schedule_data()
     start_mins = sched.get("startTime", DEFAULT_CHARGING_SCHEDULE_START)
-    end_mins = value.hour * MINUTES_PER_HOUR + value.minute
+    target_mins = value.hour * MINUTES_PER_HOUR + value.minute
 
-    duration = end_mins - start_mins
-    if duration <= 0:
-        duration += MINUTES_PER_DAY
-
-    await coordinator.update_charging_schedule_data(duration=duration)
+    if is_end_time:
+        duration = target_mins - start_mins
+        if duration <= 0:
+            duration += MINUTES_PER_DAY
+        await coordinator.update_charging_schedule_data(duration=duration)
+    else:
+        old_dur = sched.get("duration", DEFAULT_CHARGING_SCHEDULE_DURATION)
+        old_end = (start_mins + old_dur) % MINUTES_PER_DAY
+        new_dur = old_end - target_mins
+        if new_dur <= 0:
+            new_dur += MINUTES_PER_DAY
+        await coordinator.update_charging_schedule_data(
+            startTime=target_mins, duration=new_dur
+        )
 
 
 TIME_ENTITIES: Final[tuple[RivianTimeEntityDescription, ...]] = (
     RivianTimeEntityDescription(
         key="charging_schedule_start",
         translation_key="charging_schedule_start",
-        value_fn=_get_start_time,
-        set_fn=_async_set_start_time,
+        value_fn=lambda c: _get_schedule_time(c, is_end_time=False),
+        set_fn=lambda c, v: _async_set_schedule_time(c, v, is_end_time=False),
     ),
     RivianTimeEntityDescription(
         key="charging_schedule_end",
         translation_key="charging_schedule_end",
-        value_fn=_get_end_time,
-        set_fn=_async_set_end_time,
+        value_fn=lambda c: _get_schedule_time(c, is_end_time=True),
+        set_fn=lambda c, v: _async_set_schedule_time(c, v, is_end_time=True),
     ),
 )
 
