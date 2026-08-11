@@ -64,9 +64,10 @@ class RivianVehicleEntity(RivianEntity[VehicleCoordinator]):
     @property
     def available(self) -> bool:
         """Return the availability of the entity."""
-        if field := getattr(self.entity_description, "field", None):
-            if self._get_value(field) is None:
-                return False
+        if (field := getattr(self.entity_description, "field", None)) and (
+            self._get_value(field) is None
+        ):
+            return False
         return self._available
 
     def _get_value(self, key: str) -> Any | None:
@@ -82,9 +83,10 @@ class RivianVehicleControlEntity(RivianVehicleEntity):
         """Return the availability of the entity."""
         if not (super().available and self._get_value("gearStatus") == "park"):
             return False
-        if _fn := getattr(self.entity_description, "available", None):
-            if not _fn(self.coordinator):
-                return False
+        if (_fn := getattr(self.entity_description, "available", None)) and not _fn(
+            self.coordinator
+        ):
+            return False
         if zone_entity_ids := self._config_entry.options.get(CONF_ZONE, []):
             location = self.coordinator.data.get("gnssLocation", {})
             for entity_id in zone_entity_ids:
