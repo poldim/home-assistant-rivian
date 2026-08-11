@@ -143,9 +143,9 @@ class RivianChargingScheduleDaysEntity(RivianVehicleEntity, SensorEntity):
         days = frozenset(raw_days)
 
         if days == ALL_WEEK_DAYS:
-            return "Daily"
+            return "daily"
         if days == WEEKDAYS_ONLY:
-            return "Weekdays"
+            return "weekdays"
 
         ordered = [d for d in WEEK_DAYS_ORDERED if d in days]
         return ", ".join(ordered)
