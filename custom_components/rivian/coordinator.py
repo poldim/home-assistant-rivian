@@ -43,6 +43,8 @@ T = TypeVar("T", bound=dict[str, Any] | list[dict[str, Any]])
 # The first `_process_new_data` callback has been observed ~27s after the
 # subscription is established, so this needs meaningful headroom.
 INITIAL_UPDATE_TIMEOUT = 60
+CHARGING_SCHEDULE_COOL_OFF = 10
+CHARGING_SCHEDULE_REFRESH_INTERVAL = 900
 
 
 class RivianDataUpdateCoordinator(DataUpdateCoordinator[T], ABC, Generic[T]):
@@ -298,8 +300,13 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
     ) -> dict[str, Any]:
         """Fetch charging schedule via Rivian API."""
         now = time.time()
+        cooldown = (
+            CHARGING_SCHEDULE_COOL_OFF
+            if force_refresh
+            else CHARGING_SCHEDULE_REFRESH_INTERVAL
+        )
         if self._charging_schedule is None or (
-            force_refresh and (now - self._last_schedule_fetch > 10)
+            now - self._last_schedule_fetch > cooldown
         ):
             self._last_schedule_fetch = now
             try:
@@ -327,7 +334,7 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
 
     async def update_charging_schedule_data(self, schedule: dict[str, Any]) -> None:
         """Update charging schedule via Rivian API mutation."""
-        current = await self.get_charging_schedule_data()
+        current = dict(await self.get_charging_schedule_data(force_refresh=True))
         current.update(schedule)
         try:
             await self.api.set_charging_schedules(self.vehicle_id, [current])
@@ -338,7 +345,7 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Get the latest data from Rivian."""
-        await self.get_charging_schedule_data(force_refresh=True)
+        await self.get_charging_schedule_data()
         if not self.data or not self.last_update_success:
             await self._unsubscribe()
             self._unsub_handler = await self.api.subscribe_for_vehicle_updates(
@@ -377,7 +384,6 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
             return
         vehicle_info = self._build_vehicle_info_dict(pdata.get(self.key, {}))
         self.async_set_updated_data(vehicle_info)
-        self.hass.async_create_task(self.get_charging_schedule_data(force_refresh=True))
         self._error_count = 0
         self._initial.set()
 
