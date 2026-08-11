@@ -271,7 +271,9 @@ CHARGING_SENSORS: Final[tuple[RivianSensorEntityDescription, ...]] = (
         name="Charging Start Time",
         device_class=SensorDeviceClass.TIMESTAMP,
         value_lambda=lambda val: (
-            datetime.strptime(val, RIVIAN_TIMESTAMP_FORMAT) if val else val
+            datetime.strptime(val, RIVIAN_TIMESTAMP_FORMAT).astimezone(UTC)
+            if val
+            else val
         ),
     ),
     RivianSensorEntityDescription(

@@ -347,14 +347,7 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
                 callback=self._process_new_data,
             )
 
-            try:
-                await asyncio.wait_for(self._initial.wait(), 10)
-            except asyncio.TimeoutError:
-                _LOGGER.warning(
-                    "Initial WebSocket telemetry update timed out after 10s; setup proceeding"
-                )
-
-        return self.data or {}
+        return self.data
 
     async def _fetch_data(self) -> ClientResponse:
         """Fetch the data."""
