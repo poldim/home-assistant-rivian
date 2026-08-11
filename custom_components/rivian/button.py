@@ -161,7 +161,7 @@ class RivianPairPhoneButtonEntity(RivianVehicleControlEntity, ButtonEntity):
                     service_info.device,
                     str(UUID(vehicle["vas_id"])) in service_info.service_uuids,
                 )
-            except Exception as ex:  # pylint: disable=broad-except
+            except Exception as ex:  # noqa: BLE001
                 _LOGGER.error(
                     "%s not found%s",
                     rivian_ble.DEVICE_LOCAL_NAME,
