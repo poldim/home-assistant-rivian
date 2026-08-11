@@ -113,7 +113,7 @@ class RivianDataUpdateCoordinator(DataUpdateCoordinator[T], ABC, Generic[T]):
             raise ConfigEntryAuthFailed from err
         except RivianApiException as ex:
             _LOGGER.error("Rivian api exception: %s", ex, exc_info=1)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.error(
                 "Unknown Exception while updating Rivian data: %s", ex, exc_info=1
             )
@@ -158,7 +158,7 @@ class ChargingCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
         """Get the latest data from Rivian, gracefully handling deprecated endpoint failures."""
         try:
             return await super()._async_update_data()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Live charging session endpoint error: %s", err)
             return self.data or {}
 
@@ -318,7 +318,7 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
                         self._charging_schedule = schedules[0]
                         if old_schedule != self._charging_schedule:
                             self.async_update_listeners()
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001
                 _LOGGER.error("Error fetching charging schedule: %s", err)
 
             if self._charging_schedule is None:
@@ -331,7 +331,7 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
         current.update(schedule)
         try:
             await self.api.set_charging_schedules(self.vehicle_id, [current])
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _LOGGER.error("Error setting charging schedule: %s", err)
         self._charging_schedule = current
         self.async_update_listeners()
