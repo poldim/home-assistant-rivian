@@ -12,7 +12,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.entity import DeviceInfo, EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import ATTR_COORDINATOR, ATTR_USER, DOMAIN
+from .const import DOMAIN
 from .coordinator import (
     ChargingCoordinator,
     RivianDataUpdateCoordinator,
@@ -64,9 +64,9 @@ class RivianVehicleEntity(RivianEntity[VehicleCoordinator]):
     @property
     def available(self) -> bool:
         """Return the availability of the entity."""
-        field = getattr(self.entity_description, "field", None)
-        if field and self._get_value(field) is None:
-            return False
+        if field := getattr(self.entity_description, "field", None):
+            if self._get_value(field) is None:
+                return False
         return self._available
 
     def _get_value(self, key: str) -> Any | None:
@@ -82,9 +82,9 @@ class RivianVehicleControlEntity(RivianVehicleEntity):
         """Return the availability of the entity."""
         if not (super().available and self._get_value("gearStatus") == "park"):
             return False
-        _fn = getattr(self.entity_description, "available", None)
-        if _fn and not _fn(self.coordinator):
-            return False
+        if _fn := getattr(self.entity_description, "available", None):
+            if not _fn(self.coordinator):
+                return False
         if zone_entity_ids := self._config_entry.options.get(CONF_ZONE, []):
             location = self.coordinator.data.get("gnssLocation", {})
             for entity_id in zone_entity_ids:
@@ -94,25 +94,18 @@ class RivianVehicleControlEntity(RivianVehicleEntity):
             return False
         return True
 
+    @callback
     def _handle_driver_update(self) -> None:
-        """Handle driver update."""
-        entry_data = self.hass.data[DOMAIN][self._config_entry.entry_id]
-        user: UserCoordinator = entry_data[ATTR_COORDINATOR][ATTR_USER]
+        """Handle updated data from the coordinator."""
+        user: UserCoordinator = self.coordinator.drivers_coordinator
         phone_info = user.get_enrolled_phone_data(
             self._config_entry.options.get("public_key")
         )
-        if not phone_info or not phone_info[1]:
-            self._available = True
-            return
-
         device = self.coordinator.drivers_coordinator.get_device_details(
             phone_info[1].get(self.coordinator.vehicle_id)
         )
-        self._available = (
-            device["isPaired"]
-            if device and isinstance(device, dict) and "isPaired" in device
-            else True
-        )
+        self._available = device["isPaired"]
+        self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

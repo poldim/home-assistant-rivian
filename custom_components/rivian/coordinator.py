@@ -347,6 +347,14 @@ class VehicleCoordinator(RivianDataUpdateCoordinator[dict[str, Any]]):
                 callback=self._process_new_data,
             )
 
+            try:
+                await asyncio.wait_for(self._initial.wait(), INITIAL_UPDATE_TIMEOUT)
+            except asyncio.TimeoutError as err:
+                raise UpdateFailed(
+                    "Timed out waiting for initial vehicle data after "
+                    f"{INITIAL_UPDATE_TIMEOUT}s"
+                ) from err
+
         return self.data
 
     async def _fetch_data(self) -> ClientResponse:
