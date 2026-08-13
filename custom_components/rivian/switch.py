@@ -100,7 +100,6 @@ async def async_setup_entry(
     ]
     for vehicle_id, vehicle in vehicles.items():
         coord = coordinators[vehicle_id]
-        await coord.get_charging_schedule_data()
         entities.append(
             RivianChargingScheduleEnabledEntity(
                 coord, entry, CHARGING_SCHEDULE_ENABLED_SWITCH, vehicle
